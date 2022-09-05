@@ -24,7 +24,8 @@ def _get_query():
                             ROUND((a.DATA_LENGTH + a.INDEX_LENGTH) / 1024 / 1024) AS `Size (MB)`,
                             b.`Primary_Key`,
                             d.`Unique_Key`,
-                            c.`Foreign_Key`
+                            c.`Foreign_Key`,
+                            e.`Default_Values`
                      FROM 
                            information_schema.tables a
                      LEFT JOIN
@@ -36,7 +37,7 @@ def _get_query():
                           GROUP BY TABLE_NAME
                        ) b
                        ON a.TABLE_NAME = b.TABLE_NAME
-                       
+
                      LEFT JOIN
                        (
                            SELECT TABLE_NAME,
@@ -48,7 +49,7 @@ def _get_query():
                           GROUP BY TABLE_NAME
                        ) c
                        ON a.TABLE_NAME = c.TABLE_NAME   
-                       
+
                      LEFT JOIN
                        (
                           SELECT TABLE_NAME,
@@ -59,8 +60,20 @@ def _get_query():
                           GROUP BY TABLE_NAME
                        ) d
                        ON a.TABLE_NAME = d.TABLE_NAME  
-                       
-                       
+                    
+                    LEFT JOIN
+                       (
+                           SELECT TABLE_NAME,
+                          GROUP_CONCAT( CONCAT(COLUMN_NAME, ':', column_default)) as `Default_Values`
+                          FROM INFORMATION_SCHEMA.columns
+                          WHERE
+                            column_default is not null and column_default <> ''
+                            and table_schema not in ('information_schema', 'sys',
+                                                    'performance_schema','mysql')
+                          GROUP BY TABLE_NAME
+                       ) e
+                       ON a.TABLE_NAME = e.TABLE_NAME   
+
                      WHERE
                       a.TABLE_TYPE= 'BASE TABLE'
                      order by DATA_LENGTH + INDEX_LENGTH desc
